@@ -1,8 +1,8 @@
 # KiCAD KLE Placer
-A plugin for KiCAD used to place switches based on a KLE. Tested (and should work) in KiCAD 6.
+A plugin for KiCAD used to place switches based on a KLE. Tested (and should work) in KiCAD 6. Based on [kicad-kbplacer](https://github.com/adamws/kicad-kbplacer).
 
 NOTE:
-- Rotated keys in KLE are NOT SUPPORTED (I'm working on it) 
+- Rotated keys in KLE are NOT SUPPORTED (I'm working on it, read at the bottom of the page) 
 - Diode placement is NOT SUPPORTED (I'm working on it) 
 - Plugin is not fully tested
 - I tested this plugin with [marbastlib](https://github.com/ebastler/marbastlib)
@@ -59,3 +59,6 @@ Another example with multilayout. See how the 2u key is in the middle of the 1u 
 You can annotate your KiCAD schematic in a similar way with this option (follow the placement/ordering as in the example schematic above):
 
 ![image](https://user-images.githubusercontent.com/23428162/175082731-60ad769c-7e5f-448e-983e-6148822883f3.png)
+
+## Regarding rotated keys
+I haven't fully tested/figured out rotated switches. It's hard to do rotated switches because of how the plugin works currently (it goes left to right based on the order of switches, `SW1`, `SW2`, and so on). But the order in KLE gets mixed up/is hard to interpret once you introduce rotated keys, so I would have to find a nicer option for accurately relating keys on the KLE to footprints on the PCB.
