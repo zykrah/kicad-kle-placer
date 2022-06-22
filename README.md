@@ -1,9 +1,10 @@
 # KiCAD KLE Placer
 A plugin for KiCAD used to place switches based on a KLE. Tested (and should work) in KiCAD 6.
 
-> Rotated keys in KLE are NOT SUPPORTED (I'm working on it)
-> Diode placement is NOT SUPPORTED (I'm working on it)
-> Plugin is not fully tested
+NOTE:
+- Rotated keys in KLE are NOT SUPPORTED (I'm working on it) 
+- Diode placement is NOT SUPPORTED (I'm working on it) 
+- Plugin is not fully tested
 
 # Installation
 Download the github code and place it into `C:\Users\<user>\Documents\KiCad\6.0\scripting\plugins\kicad-kle-placer` (or wherever your plugins folder is located):
