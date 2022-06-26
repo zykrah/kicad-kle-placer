@@ -18,7 +18,7 @@ class KeyAutoPlaceDialog(wx.Dialog):
         # File select
         layout_select_box = wx.BoxSizer(wx.HORIZONTAL)
 
-        text = wx.StaticText(self, -1, "Select kle json file:")
+        text = wx.StaticText(self, -1, "Select KLE json file:")
         layout_select_box.Add(text, 0, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 5)
 
         layout_file_picker = wx.FilePickerCtrl(self, -1)
@@ -27,7 +27,7 @@ class KeyAutoPlaceDialog(wx.Dialog):
         # Key format
         key_format_box = wx.BoxSizer(wx.HORIZONTAL)
 
-        key_annotation_label = wx.StaticText(self, -1, "Key annotation format string:")
+        key_annotation_label = wx.StaticText(self, -1, "Key Annotation format string:")
         key_format_box.Add(key_annotation_label, 1, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 5)
 
         key_annotation_format = wx.TextCtrl(self, value='SW{}')
@@ -36,7 +36,7 @@ class KeyAutoPlaceDialog(wx.Dialog):
         # Stab format
         stab_format_box = wx.BoxSizer(wx.HORIZONTAL)
 
-        stabilizer_annotation_label = wx.StaticText(self, -1, "Stabillizer annotation format string:")
+        stabilizer_annotation_label = wx.StaticText(self, -1, "Stabillizer Annotation format string:")
         stab_format_box.Add(stabilizer_annotation_label, 1, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 5)
 
         stabilizer_annotation_format = wx.TextCtrl(self, value='S{}')
@@ -45,11 +45,32 @@ class KeyAutoPlaceDialog(wx.Dialog):
         # Diode format
         diode_format_box = wx.BoxSizer(wx.HORIZONTAL)
 
-        diodeAnnotationLabel = wx.StaticText(self, -1, "Diode annotation format string (NOT IMPLEMENTED YET):")
+        diodeAnnotationLabel = wx.StaticText(self, -1, "Diode Annotation format string:")
         diode_format_box.Add(diodeAnnotationLabel, 1, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 5)
 
         diode_annotation_format = wx.TextCtrl(self, value='D{}')
         diode_format_box.Add(diode_annotation_format, 1, wx.EXPAND|wx.ALL, 5)
+
+        # Diode bool
+        move_diodes_box = wx.BoxSizer(wx.HORIZONTAL)
+
+        move_diodes_bool = wx.CheckBox(self, label="Move Diodes")
+        move_diodes_bool.SetValue(True)
+        move_diodes_box.Add(move_diodes_bool, 1, wx.EXPAND|wx.ALL, 5)
+
+        # Relative diode mode
+        relative_diode_box = wx.BoxSizer(wx.HORIZONTAL)
+
+        relative_diode_bool = wx.CheckBox(self, label="Move diodes based on the first switch and diode (Won't do anything if move diodes is disabled)")
+        relative_diode_bool.SetValue(True)
+        relative_diode_box.Add(relative_diode_bool, 1, wx.EXPAND|wx.ALL, 5)
+
+        # Rotation mode
+        specific_ref_box = wx.BoxSizer(wx.HORIZONTAL)
+
+        specific_ref_mode = wx.CheckBox(self, label="Specific Reference Mode. Required for rotated keys. See documentation.")
+        specific_ref_mode.SetValue(False)
+        specific_ref_box.Add(specific_ref_mode, 1, wx.EXPAND|wx.ALL, 5)
 
         # Final setup of box
         box = wx.BoxSizer(wx.VERTICAL)
@@ -58,6 +79,9 @@ class KeyAutoPlaceDialog(wx.Dialog):
         box.Add(key_format_box, 0, wx.EXPAND|wx.ALL, 5)
         box.Add(stab_format_box, 0, wx.EXPAND|wx.ALL, 5)
         box.Add(diode_format_box, 0, wx.EXPAND|wx.ALL, 5)
+        box.Add(move_diodes_box, 0, wx.EXPAND|wx.ALL, 5)
+        box.Add(relative_diode_box, 0, wx.EXPAND|wx.ALL, 5)
+        box.Add(specific_ref_box, 0, wx.EXPAND|wx.ALL, 5)
 
         buttons = self.CreateButtonSizer(wx.OK|wx.CANCEL)
         box.Add(buttons, 0, wx.EXPAND|wx.ALL, 5)
@@ -67,6 +91,9 @@ class KeyAutoPlaceDialog(wx.Dialog):
         self.key_annotation_format = key_annotation_format
         self.stabilizer_annotation_format = stabilizer_annotation_format
         self.diode_annotation_format = diode_annotation_format
+        self.move_diodes_bool = move_diodes_bool
+        self.relative_diode_bool = relative_diode_bool
+        self.specific_ref_mode = specific_ref_mode
 
     def get_layout_path(self):
         return self.layout_file_picker.GetPath()
@@ -80,16 +107,24 @@ class KeyAutoPlaceDialog(wx.Dialog):
     def get_diode_annotation_format(self):
         return self.diode_annotation_format.GetValue()
 
+    def get_move_diodes_bool(self):
+        return self.move_diodes_bool.GetValue()
+    
+    def get_relative_diode_bool(self):
+        return self.relative_diode_bool.GetValue()
+    
+    def get_specific_ref_mode_bool(self):
+        return self.specific_ref_mode.GetValue()
 
 class BoardModifier():
     def __init__(self, logger, board):
         self.logger = logger
         self.board = board
 
-    def mm_to_nm(v):
+    def mm_to_nm(self, v):
         return int(v * 1000000)
     
-    def nm_to_mm(v):
+    def nm_to_mm(self, v):
         return v / 1000000.0
 
     def get_footprint(self, reference, required=True):
@@ -117,7 +152,7 @@ class KeyPlacer(BoardModifier):
     def __init__(self, logger, board, layout):
         super().__init__(logger, board)
         self.layout: Keyboard = layout
-        self.key_distance = 19050000
+        self.key_distance = pcbnew.FromMM(19.05)
         self.current_key = 1
         self.current_diode = 1
         self.reference_coordinate = pcbnew.wxPoint(pcbnew.FromMM(25), pcbnew.FromMM(25))
@@ -133,10 +168,10 @@ class KeyPlacer(BoardModifier):
 
         return key, stabilizer
 
-    def get_current_diode(self, diode_format):
-        diode = self.get_footprint(diode_format.format(self.current_diode))
-        self.current_diode += 1
-        return diode
+    # def get_current_diode(self, diode_format):
+    #     diode = self.get_footprint(diode_format.format(self.current_diode))
+    #     self.current_diode += 1
+    #     return diode
 
     def squish_kbd_multilayout(self):
         kbd = deepcopy(self.layout)
@@ -235,63 +270,115 @@ class KeyPlacer(BoardModifier):
         # Sort keys based on the centers of each key (by default it sorts with the top left corner)
         sort_keys_kle_placer(self.layout.keys)
 
-    def Run(self, key_format, stabilizer_format, diode_format):
+    def Run(self, key_format, stabilizer_format, diode_format, move_diodes, relative_diode_mode, rotation_mode):
 
         ### First, check all the multilayouts and squish all the same multilayouts into the same position on top of one another. ###
 
         self.squish_kbd_multilayout()
 
+
         ### Now begin the placement of all keys based on new layout. ###
 
-        # Set the origin as the middle of the first key
+        # Get information about the first key
         first_key = self.get_footprint(key_format.format(1))
         first_key_pos = pcbnew.wxPoint((first_key.GetPosition().x) - ((self.key_distance * self.layout.keys[0].x) + (self.key_distance * self.layout.keys[0].width // 2)),
                 (first_key.GetPosition().y) - ((self.key_distance * self.layout.keys[0].y) + (self.key_distance * self.layout.keys[0].height // 2)))
+        first_key_rotation = first_key.GetOrientationDegrees()
+
+        # Set the origin/reference as the first key
         self.reference_coordinate = first_key_pos
 
-        column_switch_pads = {}
-        row_diode_pads = {}
+        # Set the default rotation to that of the first key's
+        default_key_rotation = first_key_rotation
 
+        # Get information about the first diode
+        first_diode = self.get_footprint(diode_format.format(1), required=False) or None
+
+        # Make sure there is a first diode if relative diode is enabled
+        if not first_diode and relative_diode_mode:
+            raise Exception("First key requires a diode!")
+
+        # DEFAULTS
+        diode_offset_x = 0 # mm
+        diode_offset_y = 0 # mm
+
+        if relative_diode_mode:
+            diode_offset_x = self.nm_to_mm(first_diode.GetPosition().x - first_key.GetPosition().x)
+            diode_offset_y = self.nm_to_mm(first_diode.GetPosition().y - first_key.GetPosition().y)
+        
+        first_diode_rotation = first_diode.GetOrientationDegrees()
+
+        # Set the default diode rotation to that of the first diode's
+        default_diode_rotation = first_diode_rotation
+
+        # Check for violations of KLE guidelines
+        if any([not key.labels[4].isdigit() for key in self.layout.keys]) and rotation_mode:
+            raise Exception("You need to provide a reference for every switch (label 4) if using rotation mode!")
+
+        if any([key.rotation_angle != 0 for key in self.layout.keys]) and not rotation_mode:
+            raise Exception("You must enable rotation mode if there are any rotated keys!")
+
+        # Start placement of keys
         for key in self.layout.keys:
+            if rotation_mode:
+                current_ref = int(key.labels[4]) # Already checked for violations earlier
+                self.current_key = current_ref
+
+            # Get the diode, switch and stabilizer footprints
+            diode_footprint = self.get_footprint(diode_format.format(self.current_key), required=False) or None
             switch_footprint, stabilizer = self.get_current_key(key_format, stabilizer_format)
 
+            # Extra individual switch rotations i.e. extra rotation compared to the first switch's rotation e.g. for south/north facing switches
+            extra_switch_rotation = 0
+            if key.labels[10].isdigit():
+                extra_switch_rotation = int(key.labels[10])
+
+            # Whether or not to flip the stablizer footprint
+            flip_stabilizer = False
+            if key.labels[9].lower() == 'f':
+                flip_stabilizer = True
+
+            # Shortcuts
             width = key.width
             height = key.height
             angle = key.rotation_angle
 
+            # Calculate position on board
             position = pcbnew.wxPoint((self.key_distance * key.x) + (self.key_distance * width // 2),
                 (self.key_distance * key.y) + (self.key_distance * height // 2)) + self.reference_coordinate
             
+            # Move switch footprint
             self.set_position(switch_footprint, position)
+
+            # Set rotation of switch to the same as the first one, then rotate extra based if needed
+            switch_footprint.SetOrientationDegrees(default_key_rotation) 
+            if extra_switch_rotation: 
+                self.rotate(switch_footprint, switch_footprint.GetPosition(), extra_switch_rotation)
+
+            # Move (and rotate) diode if it exists, and Move Diode is enabled
+            if diode_footprint and move_diodes:
+                self.set_relative_position_mm(diode_footprint, position, [diode_offset_x, diode_offset_y])
+                diode_footprint.SetOrientationDegrees(default_diode_rotation)
+                self.rotate(diode_footprint, switch_footprint.GetPosition(), extra_switch_rotation)
+
+            # Move stabilizer if it exists
             if stabilizer:
+                stabilizer.SetOrientationDegrees(0)
                 self.set_position(stabilizer, position)
-                
-                # NOT NEEDED FOR MARBASTLIB
-                # # recognize special case of of ISO enter: 
-                # width2 = key.width2
-                # height2 = key.height2
-                # if width == 1.25 and height == 2 and width2 == 1.5 and height2 == 1:
-                #     stabilizer.SetOrientationDegrees(90)
 
-            # # ROTATION SUPPORT NOT IMPLEMENTED YET
-            # if angle != 0:
-            #     # rotationReference = self.board.GetDesignSettings().GetAuxOrigin()
-            #     # rotationReference = position - pcbnew.wxPoint((self.key_distance * width // 2), (self.key_distance * height // 2))
-            #     rotationReference = pcbnew.wxPoint((self.key_distance * key.rotation_x), (self.key_distance * key.rotation_y)) + self.reference_coordinate
-            #     # rotationReference = pcbnew.wxPoint((self.key_distance * key.x),
-            #     #     (self.key_distance * key.y)) + self.reference_coordinate
+                if flip_stabilizer:
+                    stabilizer.SetOrientationDegrees(180)
 
-            #     self.rotate(switch_footprint, rotationReference, angle)
+            # For angled keys (should only apply when rotation mode is enabled)
+            if angle != 0:
+                rotation_reference = pcbnew.wxPoint((self.key_distance * key.rotation_x), (self.key_distance * key.rotation_y)) + self.reference_coordinate
+                self.rotate(switch_footprint, rotation_reference, angle)
 
-            #     if stabilizer:
-            #         self.rotate(stabilizer, rotationReference, angle)
-                
-            #     # # DEBUG:
-            #     # self.set_position(switch_footprint, rotationReference)
+                if diode_footprint and move_diodes:
+                    self.rotate(diode_footprint, rotation_reference, angle)
 
-            # DIODE SUPPORT NOT IMPLEMENTED YET
-            # diode_footprint = self.get_current_diode(diode_format)
-            # self.set_relative_position_mm(diode_footprint, position, [5.08, 3.03]) # be able to configure this
+                if stabilizer:
+                    self.rotate(stabilizer, rotation_reference, angle)
 
 
 class KLEPlacerAction(pcbnew.ActionPlugin):
@@ -336,7 +423,7 @@ class KLEPlacerAction(pcbnew.ActionPlugin):
             
                 self.logger.info("User layout: {}".format(self.layout))
                 placer = KeyPlacer(self.logger, self.board, self.layout)
-                placer.Run(dlg.get_key_annotation_format(), dlg.get_stabilizer_annotation_format(), dlg.get_diode_annotation_format())
+                placer.Run(dlg.get_key_annotation_format(), dlg.get_stabilizer_annotation_format(), dlg.get_diode_annotation_format(), dlg.get_move_diodes_bool(), dlg.get_relative_diode_bool(), dlg.get_specific_ref_mode_bool())
 
         dlg.Destroy()
         logging.shutdown()
