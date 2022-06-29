@@ -2,7 +2,7 @@
 A plugin for KiCAD used to place switches based on a KLE. Tested (and should work) in KiCAD 6. Based on [kicad-kbplacer](https://github.com/adamws/kicad-kbplacer).
 
 NOTE:
-- ~~Rotated keys in KLE are NOT SUPPORTED (I'm working on it, read at the bottom of the page)~~ Rotated keys requires you to enable the Specific Reference mode. See the bottom of the page.
+- ~~Rotated keys in KLE are NOT SUPPORTED (I'm working on it, read at the bottom of the page)~~ Rotated keys requires you to enable the [Specific Reference mode](https://github.com/zykrah/kicad-kle-placer#specific-reference-mode-and-rotated-keys).
 - ~~Diode placement is NOT SUPPORTED (I'm working on it)~~ DONE. Read below.
 - Plugin is not fully tested, the more complex layouts you try with it, the less likely it is to work fully. Please open issues for any unintended behaviour.
 - I tested this plugin with [marbastlib](https://github.com/ebastler/marbastlib) (symbols and footprints).
@@ -76,7 +76,7 @@ When you run the script, the rest of the diodes will move the same way:
 
 ## Extra switch rotations
 
-At first, all switches will be set to the same rotation as the first key. You can then use extra switch rotations (assign them in label position 10) to further rotate specific switch footprints.
+At first, all switches will be set to the same rotation as the first key. You can then use extra switch rotations (assign them in label position 10) to further rotate specific switch footprints. This is useful for e.g. specifying certain keys to be north facing, when the rest of the keys on the board are south facing.
 
 Based on above example:
 
@@ -88,11 +88,9 @@ Based on above example:
 ## Multilayout
 > NOTE: colour is irrelevant for multilayout, but makes reading it easier.
 
-You can either follow the guidelines and place the appropriate multilayout labels: 
+You can either follow the guidelines and place the appropriate multilayout labels OR "squish" the keys together (layer the same multilayouts on top of eachother):
 
 ![image](https://user-images.githubusercontent.com/23428162/175812839-ee803b22-a697-4be9-a8cf-a89718b69f8f.png)
-
-OR, "squish" the keys together (layer the same multilayouts on top of eachother):
 
 ![image](https://user-images.githubusercontent.com/23428162/175812881-1f0823c0-4604-4d8c-b354-3dddf44d2095.png)
 
@@ -109,7 +107,7 @@ In terms of **diodes**, use the *same reference for the diode as the switch it c
 
 > NOTE: I am using symbols from [marbastlib](https://github.com/ebastler/marbastlib). You can use any switch symbol you want.
 
-Schematic from the same example as earlier:
+Schematic from the same example as earlier, note the order of the symbols:
 
 ![image](https://user-images.githubusercontent.com/23428162/175812369-cbbaadc2-2d5e-4275-abe7-c62cd958d119.png)
 
