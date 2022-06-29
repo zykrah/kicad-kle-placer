@@ -251,8 +251,10 @@ class KeyPlacer(BoardModifier):
                 key.x += ml_x_offset
                 key.y += ml_y_offset
 
-            # Add the key to the final list
-            temp_layout.append(key)
+            # (For multilayouts) make sure there isn't any of the same overlapping keys
+            if not any([ (key.x + (key.width/2) == a.x + (a.width/2) and key.y + (key.height/2) == a.y + (a.height/2)) for a in temp_layout]):
+                # Add the key to the final list
+                temp_layout.append(key)
 
         # Offset all the remaining keys (align against the top left)
         x_offset, y_offset = min_x_y(temp_layout)
