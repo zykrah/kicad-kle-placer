@@ -278,13 +278,25 @@ class KeyPlacer(BoardModifier):
 
         self.squish_kbd_multilayout()
 
+        # Check for violations of KLE guidelines
+        if any([not key.labels[4].isdigit() for key in self.layout.keys]) and rotation_mode:
+            raise Exception("You need to provide a reference for every switch (label 4) if using rotation mode!")
+
+        if any([key.rotation_angle != 0 for key in self.layout.keys]) and not rotation_mode:
+            raise Exception("You must enable rotation mode if there are any rotated keys!")
+
 
         ### Now begin the placement of all keys based on new layout. ###
 
         # Get information about the first key
         first_key = self.get_footprint(key_format.format(1))
+        if rotation_mode: # Sort layout by reference if using specific reference mode
+            def check(key):
+                return int(key.labels[4])
+            self.layout.keys.sort(key=lambda x:check(x))
         first_key_pos = pcbnew.wxPoint((first_key.GetPosition().x) - ((self.key_distance * self.layout.keys[0].x) + (self.key_distance * self.layout.keys[0].width // 2)),
-                (first_key.GetPosition().y) - ((self.key_distance * self.layout.keys[0].y) + (self.key_distance * self.layout.keys[0].height // 2)))
+                    (first_key.GetPosition().y) - ((self.key_distance * self.layout.keys[0].y) + (self.key_distance * self.layout.keys[0].height // 2)))
+        
         first_key_rotation = first_key.GetOrientationDegrees()
 
         # Set the origin/reference as the first key
@@ -312,13 +324,6 @@ class KeyPlacer(BoardModifier):
 
         # Set the default diode rotation to that of the first diode's
         default_diode_rotation = first_diode_rotation
-
-        # Check for violations of KLE guidelines
-        if any([not key.labels[4].isdigit() for key in self.layout.keys]) and rotation_mode:
-            raise Exception("You need to provide a reference for every switch (label 4) if using rotation mode!")
-
-        if any([key.rotation_angle != 0 for key in self.layout.keys]) and not rotation_mode:
-            raise Exception("You must enable rotation mode if there are any rotated keys!")
 
         # Start placement of keys
         for key in self.layout.keys:
