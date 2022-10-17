@@ -23,6 +23,9 @@ class KeyAutoPlaceDialog(wx.Dialog):
 
         layout_file_picker = wx.FilePickerCtrl(self, -1)
         layout_select_box.Add(layout_file_picker, 1, wx.EXPAND|wx.ALL, 5)
+        default_path = os.path.join(str(os.getenv('KIPRJMOD')), 'keyboard-layout.json')
+        if os.path.exists(default_path):
+            layout_file_picker.SetPath(default_path)
 
         # Key format
         key_format_box = wx.BoxSizer(wx.HORIZONTAL)

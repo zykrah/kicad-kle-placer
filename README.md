@@ -29,6 +29,8 @@ The script takes in the `json` file of a KLE, downloaded as shown:
 
 ![image](https://user-images.githubusercontent.com/23428162/168476867-7477de1c-a342-41e8-b515-0a1d21b097b8.png)
 
+Place in keyboard-layout.json in the project folder (i.e. "${KIPRJMOD}/keyboard-layout.json") and the script will auto detect it so you don't have to search for the file.
+
 Follow the following KLE guidelines to enable more advanced functionality of the plugin:
 
 
@@ -119,7 +121,7 @@ To mass-annotate symbols, you can use this tool in the schematic editor. If you 
 ## SPECIFIC REFERENCE MODE (and rotated keys)
 It's hard to do rotated switches with the board's normal mode (it goes left to right based on the order of switches, `SW1`, `SW2`, and so on). The order of keys in KLE gets mixed up/is hard to interpret once you introduce rotated keys, so my solution/compromise for accurately relating keys on the KLE to footprints on the PCB, is to add a separate mode.
 
-To enable it, check the `Specific Reference Mode` checkbox in the dialog. 
+To enable it, check the `Specific Reference Mode` checkbox in the dialog.
 
 Furthermore, with this mode, you're required to fill out label 4 with the reference value of the switch footprint that the key corresponds to (e.g. the key that corresponds to `SW1` should have `1` in label position 4, see guidelines above).
 
