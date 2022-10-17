@@ -19,7 +19,7 @@ You can then refresh your plugins and it should show up (you can also find a sho
 
 What the dialog looks like:
 
-![image](https://user-images.githubusercontent.com/23428162/175812246-eb44a86b-b6de-445c-b713-ac16aee70f52.png)
+![image](https://user-images.githubusercontent.com/26168490/196301764-68277824-57dc-44b8-a1de-a3569c475afc.png)
 
 
 # Usage
