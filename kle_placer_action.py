@@ -54,6 +54,15 @@ class KeyAutoPlaceDialog(wx.Dialog):
         diode_annotation_format = wx.TextCtrl(self, value='D{}')
         diode_format_box.Add(diode_annotation_format, 1, wx.EXPAND|wx.ALL, 5)
 
+        # Led format
+        led_format_box = wx.BoxSizer(wx.HORIZONTAL)
+
+        ledAnnotationLabel = wx.StaticText(self, -1, "Led Annotation format string:")
+        led_format_box.Add(ledAnnotationLabel, 1, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 5)
+
+        led_annotation_format = wx.TextCtrl(self, value='LED{}')
+        led_format_box.Add(led_annotation_format, 1, wx.EXPAND|wx.ALL, 5)
+
         # Diode bool
         move_diodes_box = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -82,6 +91,7 @@ class KeyAutoPlaceDialog(wx.Dialog):
         box.Add(key_format_box, 0, wx.EXPAND|wx.ALL, 5)
         box.Add(stab_format_box, 0, wx.EXPAND|wx.ALL, 5)
         box.Add(diode_format_box, 0, wx.EXPAND|wx.ALL, 5)
+        box.Add(led_format_box, 0, wx.EXPAND|wx.ALL, 5)
         box.Add(move_diodes_box, 0, wx.EXPAND|wx.ALL, 5)
         box.Add(relative_diode_box, 0, wx.EXPAND|wx.ALL, 5)
         box.Add(specific_ref_box, 0, wx.EXPAND|wx.ALL, 5)
@@ -94,6 +104,7 @@ class KeyAutoPlaceDialog(wx.Dialog):
         self.key_annotation_format = key_annotation_format
         self.stabilizer_annotation_format = stabilizer_annotation_format
         self.diode_annotation_format = diode_annotation_format
+        self.led_annotation_format = led_annotation_format
         self.move_diodes_bool = move_diodes_bool
         self.relative_diode_bool = relative_diode_bool
         self.specific_ref_mode = specific_ref_mode
@@ -110,12 +121,15 @@ class KeyAutoPlaceDialog(wx.Dialog):
     def get_diode_annotation_format(self):
         return self.diode_annotation_format.GetValue()
 
+    def get_led_annotation_format(self):
+        return self.led_annotation_format.GetValue()
+
     def get_move_diodes_bool(self):
         return self.move_diodes_bool.GetValue()
-    
+
     def get_relative_diode_bool(self):
         return self.relative_diode_bool.GetValue()
-    
+
     def get_specific_ref_mode_bool(self):
         return self.specific_ref_mode.GetValue()
 
@@ -126,7 +140,7 @@ class BoardModifier():
 
     def mm_to_nm(self, v):
         return int(v * 1000000)
-    
+
     def nm_to_mm(self, v):
         return v / 1000000.0
 
@@ -160,16 +174,20 @@ class KeyPlacer(BoardModifier):
         self.current_diode = 1
         self.reference_coordinate = pcbnew.wxPoint(pcbnew.FromMM(25), pcbnew.FromMM(25))
 
-    def get_current_key(self, key_format, stabilizer_format):
+    def get_current_key(self, key_format, stabilizer_format, led_format):
         key = self.get_footprint(key_format.format(self.current_key))
 
         # in case of perigoso/keyswitch-kicad-library, stabilizer holes are not part of of switch footprint and needs to be handled
         # separately, check if there is stabilizer with id matching current key and return it
         # stabilizer will be None if not found
         stabilizer = self.get_footprint(stabilizer_format.format(self.current_key), required=False)
+        led = None
+        if led_format:
+            led = self.get_footprint(led_format.format(self.current_key), required=False)
+
         self.current_key += 1
 
-        return key, stabilizer
+        return key, stabilizer, led
 
     # def get_current_diode(self, diode_format):
     #     diode = self.get_footprint(diode_format.format(self.current_diode))
@@ -182,7 +200,7 @@ class KeyPlacer(BoardModifier):
 
         # This list will replace kbd.keys later
         # It is a list with only the keys to be included in the info.json
-        temp_layout = [] 
+        temp_layout = []
         # Add non-multilayout keys to the list for now
         for key in [k for k in kbd.keys if k not in ml_keys]:
             temp_layout.append(key)
@@ -249,7 +267,7 @@ class KeyPlacer(BoardModifier):
                 else:
                     # If so, just get the offset from ml_dict
                     ml_x_offset, ml_y_offset = ml_dict[ml_ndx]["offsets"][ml_val]
-                
+
                 # Offset the x and y values
                 key.x += ml_x_offset
                 key.y += ml_y_offset
@@ -264,7 +282,7 @@ class KeyPlacer(BoardModifier):
         for key in temp_layout:
             key.x -= x_offset
             key.y -= y_offset
-            
+
             if key.rotation_angle:
                 key.rotation_x -= x_offset
                 key.rotation_y -= y_offset
@@ -275,7 +293,7 @@ class KeyPlacer(BoardModifier):
         # Sort keys based on the centers of each key (by default it sorts with the top left corner)
         sort_keys_kle_placer(self.layout.keys)
 
-    def Run(self, key_format, stabilizer_format, diode_format, move_diodes, relative_diode_mode, rotation_mode):
+    def Run(self, key_format, stabilizer_format, diode_format, led_format, move_diodes, relative_diode_mode, rotation_mode):
 
         ### First, check all the multilayouts and squish all the same multilayouts into the same position on top of one another. ###
 
@@ -299,7 +317,7 @@ class KeyPlacer(BoardModifier):
             self.layout.keys.sort(key=lambda x:check(x))
         first_key_pos = pcbnew.wxPoint((first_key.GetPosition().x) - ((self.key_distance * self.layout.keys[0].x) + (self.key_distance * self.layout.keys[0].width // 2)),
                     (first_key.GetPosition().y) - ((self.key_distance * self.layout.keys[0].y) + (self.key_distance * self.layout.keys[0].height // 2)))
-        
+
         first_key_rotation = first_key.GetOrientationDegrees()
 
         # Set the origin/reference as the first key
@@ -319,10 +337,11 @@ class KeyPlacer(BoardModifier):
         diode_offset_x = 0 # mm
         diode_offset_y = 0 # mm
 
+
         if relative_diode_mode:
             diode_offset_x = self.nm_to_mm(first_diode.GetPosition().x - first_key.GetPosition().x)
             diode_offset_y = self.nm_to_mm(first_diode.GetPosition().y - first_key.GetPosition().y)
-        
+
         first_diode_rotation = first_diode.GetOrientationDegrees()
 
         # Set the default diode rotation to that of the first diode's
@@ -334,9 +353,9 @@ class KeyPlacer(BoardModifier):
                 current_ref = int(key.labels[4]) # Already checked for violations earlier
                 self.current_key = current_ref
 
-            # Get the diode, switch and stabilizer footprints
+            # Get the diode, switch, stabilizer, and led footprints
             diode_footprint = self.get_footprint(diode_format.format(self.current_key), required=False) or None
-            switch_footprint, stabilizer = self.get_current_key(key_format, stabilizer_format)
+            switch_footprint, stabilizer, led_footprint = self.get_current_key(key_format, stabilizer_format, led_format)
 
             # Extra individual switch rotations i.e. extra rotation compared to the first switch's rotation e.g. for south/north facing switches
             extra_switch_rotation = 0
@@ -356,13 +375,13 @@ class KeyPlacer(BoardModifier):
             # Calculate position on board
             position = pcbnew.wxPoint((self.key_distance * key.x) + (self.key_distance * width // 2),
                 (self.key_distance * key.y) + (self.key_distance * height // 2)) + self.reference_coordinate
-            
+
             # Move switch footprint
             self.set_position(switch_footprint, position)
 
             # Set rotation of switch to the same as the first one, then rotate extra based if needed
-            switch_footprint.SetOrientationDegrees(default_key_rotation) 
-            if extra_switch_rotation: 
+            switch_footprint.SetOrientationDegrees(default_key_rotation)
+            if extra_switch_rotation:
                 self.rotate(switch_footprint, switch_footprint.GetPosition(), extra_switch_rotation)
 
             # Move (and rotate) diode if it exists, and Move Diode is enabled
@@ -371,6 +390,7 @@ class KeyPlacer(BoardModifier):
                 diode_footprint.SetOrientationDegrees(default_diode_rotation)
                 self.rotate(diode_footprint, switch_footprint.GetPosition(), extra_switch_rotation)
 
+
             # Move stabilizer if it exists
             if stabilizer:
                 stabilizer.SetOrientationDegrees(0)
@@ -378,6 +398,16 @@ class KeyPlacer(BoardModifier):
 
                 if flip_stabilizer:
                     stabilizer.SetOrientationDegrees(180)
+
+            # Move led if it exists
+            if led_footprint:
+                # led footprint might not have origin at center of switch
+                led_offset = led_footprint.GetPosition() - led_footprint.GetBoundingBox().GetOrigin()
+                switch_offset = switch_footprint.GetPosition() - switch_footprint.GetBoundingBox().GetOrigin()
+                offset = (led_offset - switch_offset)
+                self.set_position(led_footprint, position + offset)
+                led_footprint.SetOrientationDegrees(default_key_rotation)
+                self.rotate(led_footprint, led_footprint.GetPosition() + offset, extra_switch_rotation)
 
             # For angled keys (should only apply when rotation mode is enabled)
             if angle != 0:
@@ -389,6 +419,9 @@ class KeyPlacer(BoardModifier):
 
                 if stabilizer:
                     self.rotate(stabilizer, rotation_reference, angle)
+
+                if led_footprint:
+                    self.rotate(led_footprint, rotation_reference, angle)
 
 
 class KLEPlacerAction(pcbnew.ActionPlugin):
@@ -426,14 +459,14 @@ class KLEPlacerAction(pcbnew.ActionPlugin):
 
         dlg = KeyAutoPlaceDialog(pcbFrame, 'Title', 'Caption')
         if dlg.ShowModal() == wx.ID_OK:
-            
+
             layout_path = dlg.get_layout_path()
             if layout_path:
                 self.layout = deserialize(json.loads(read_file(layout_path)))
-            
+
                 self.logger.info("User layout: {}".format(self.layout))
                 placer = KeyPlacer(self.logger, self.board, self.layout)
-                placer.Run(dlg.get_key_annotation_format(), dlg.get_stabilizer_annotation_format(), dlg.get_diode_annotation_format(), dlg.get_move_diodes_bool(), dlg.get_relative_diode_bool(), dlg.get_specific_ref_mode_bool())
+                placer.Run(dlg.get_key_annotation_format(), dlg.get_stabilizer_annotation_format(), dlg.get_diode_annotation_format(), dlg.get_led_annotation_format(), dlg.get_move_diodes_bool(), dlg.get_relative_diode_bool(), dlg.get_specific_ref_mode_bool())
 
         dlg.Destroy()
         logging.shutdown()

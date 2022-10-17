@@ -76,6 +76,14 @@ When you run the script, the rest of the diodes will move the same way:
 ![image](https://user-images.githubusercontent.com/23428162/175814169-297a9c08-3843-4525-a0dd-9670c7bf7e06.png)
 
 
+## Led/Other Component Placement
+
+Rudimentary led placement is supported. That is, leds will be placed like the switch, using the top left corner of the footprint as reference.
+
+For the moment seperate numbering is not supported. They require the same numbering as switches, so you will probably need to rename them from D to LED.
+
+Note that this can also place other components, they need not be LEDs.
+
 ## Extra switch rotations
 
 At first, all switches will be set to the same rotation as the first key. You can then use extra switch rotations (assign them in label position 10) to further rotate specific switch footprints. This is useful for e.g. specifying certain keys to be north facing, when the rest of the keys on the board are south facing.
