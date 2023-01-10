@@ -6,9 +6,10 @@ import sys
 import json
 import logging
 from copy import deepcopy
-from .deserialize import deserialize
-# from .serialize import *
-from .kle_placer_utils import Keyboard, read_file, sort_keys_kle_placer, min_x_y, check_multilayout_keys
+from math import sin, cos, radians, sqrt
+
+from .serial import deserialize, Keyboard
+from .util import read_file, sort_keys_kle_placer, min_x_y, check_multilayout_keys
 
 class KeyAutoPlaceDialog(wx.Dialog):
     def __init__(self, parent, title, caption):
@@ -175,6 +176,7 @@ class KeyPlacer(BoardModifier):
 
     def squish_kbd_multilayout(self):
         kbd = deepcopy(self.layout)
+        self.logger.info(kbd.keys)
         ml_keys = check_multilayout_keys(kbd)
 
         # This list will replace kbd.keys later
@@ -294,7 +296,28 @@ class KeyPlacer(BoardModifier):
             def check(key):
                 return int(key.labels[4])
             self.layout.keys.sort(key=lambda x:check(x))
-        first_key_pos = pcbnew.wxPoint((first_key.GetPosition().x) - ((self.key_distance * self.layout.keys[0].x) + (self.key_distance * self.layout.keys[0].width // 2)),
+            if self.layout.keys[0].rotation_angle != 0 and (first_key.GetOrientationDegrees() + self.layout.keys[0].rotation_angle) in [0, 90, 180, -90]:
+                r = self.layout.keys[0].rotation_angle
+                w = self.layout.keys[0].width
+                h = self.layout.keys[0].height
+                dif_x = cos(radians(r+45)) * (sqrt(pow(w,2) + pow(h,2)) / 2)
+                dif_y = sin(radians(r+45)) * (sqrt(pow(w,2) + pow(h,2)) / 2)
+                
+                self.logger.info("dif_x {}".format(dif_x))
+                self.logger.info("dif_y {}".format(dif_y))
+                x = first_key.GetPosition().x - self.key_distance * dif_x
+                y = first_key.GetPosition().y - self.key_distance * dif_y
+                # self.set_position(first_key, pcbnew.wxPoint(, ))
+
+                xc = x * cos(radians(r)) - y * sin(radians(r))
+                yc = y * cos(radians(r)) + x * sin(radians(r))
+                
+                self.set_position(first_key,  pcbnew.wxPoint(xc, yc))
+                first_key_pos = pcbnew.wxPoint(xc, yc)
+                self.logger.info("first_key_pos {}".format(first_key_pos))
+                # self.set_position(first_key, first_key_pos)
+        else:
+            first_key_pos = pcbnew.wxPoint((first_key.GetPosition().x) - ((self.key_distance * self.layout.keys[0].x) + (self.key_distance * self.layout.keys[0].width // 2)),
                     (first_key.GetPosition().y) - ((self.key_distance * self.layout.keys[0].y) + (self.key_distance * self.layout.keys[0].height // 2)))
         
         first_key_rotation = first_key.GetOrientationDegrees()
@@ -303,7 +326,13 @@ class KeyPlacer(BoardModifier):
         self.reference_coordinate = first_key_pos
 
         # Set the default rotation to that of the first key's
-        default_key_rotation = first_key_rotation
+        first_key_already_rotated = False
+        if first_key_rotation != 0 and (first_key_rotation + self.layout.keys[0].rotation_angle) in [0, 90, 180, -90]:
+            default_key_rotation = first_key_rotation + self.layout.keys[0].rotation_angle
+            first_key_already_rotated = True
+        else:
+            default_key_rotation = first_key_rotation
+        self.logger.info("default_key_rotation {}".format(default_key_rotation))
 
         # Get information about the first diode
         first_diode = self.get_footprint(diode_format.format(1), required=False) or None
@@ -321,6 +350,8 @@ class KeyPlacer(BoardModifier):
             diode_offset_y = self.nm_to_mm(first_diode.GetPosition().y - first_key.GetPosition().y)
         
         first_diode_rotation = first_diode.GetOrientationDegrees()
+        if first_key_already_rotated:
+            first_diode_rotation += self.layout.keys[0].rotation_angle
 
         # Set the default diode rotation to that of the first diode's
         default_diode_rotation = first_diode_rotation
@@ -329,6 +360,8 @@ class KeyPlacer(BoardModifier):
         for key in self.layout.keys:
             if rotation_mode:
                 current_ref = int(key.labels[4]) # Already checked for violations earlier
+                # if current_ref == 1:
+                #     continue
                 self.current_key = current_ref
 
             # Get the diode, switch and stabilizer footprints
