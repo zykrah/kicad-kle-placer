@@ -19,7 +19,7 @@ You can then refresh your plugins and it should show up (you can also find a sho
 
 What the dialog looks like:
 
-![image](https://user-images.githubusercontent.com/23428162/175812246-eb44a86b-b6de-445c-b713-ac16aee70f52.png)
+![image](https://user-images.githubusercontent.com/26168490/196301764-68277824-57dc-44b8-a1de-a3569c475afc.png)
 
 
 # Usage
@@ -28,6 +28,8 @@ What the dialog looks like:
 The script takes in the `json` file of a KLE, downloaded as shown:
 
 ![image](https://user-images.githubusercontent.com/23428162/168476867-7477de1c-a342-41e8-b515-0a1d21b097b8.png)
+
+Place in keyboard-layout.json in the project folder (i.e. "${KIPRJMOD}/keyboard-layout.json") and the script will auto detect it so you don't have to search for the file.
 
 Follow the following KLE guidelines to enable more advanced functionality of the plugin:
 
@@ -74,6 +76,14 @@ When you run the script, the rest of the diodes will move the same way:
 ![image](https://user-images.githubusercontent.com/23428162/175814169-297a9c08-3843-4525-a0dd-9670c7bf7e06.png)
 
 
+## Led/Other Component Placement
+
+Rudimentary led placement is supported. That is, leds will be placed like the switch, using the top left corner of the footprint as reference.
+
+For the moment seperate numbering is not supported. They require the same numbering as switches, so you will probably need to rename them from D to LED.
+
+Note that this can also place other components, they need not be LEDs.
+
 ## Extra switch rotations
 
 At first, all switches will be set to the same rotation as the first key. You can then use extra switch rotations (assign them in label position 10) to further rotate specific switch footprints. This is useful for e.g. specifying certain keys to be north facing, when the rest of the keys on the board are south facing.
@@ -119,7 +129,7 @@ To mass-annotate symbols, you can use this tool in the schematic editor. If you 
 ## SPECIFIC REFERENCE MODE (and rotated keys)
 It's hard to do rotated switches with the board's normal mode (it goes left to right based on the order of switches, `SW1`, `SW2`, and so on). The order of keys in KLE gets mixed up/is hard to interpret once you introduce rotated keys, so my solution/compromise for accurately relating keys on the KLE to footprints on the PCB, is to add a separate mode.
 
-To enable it, check the `Specific Reference Mode` checkbox in the dialog. 
+To enable it, check the `Specific Reference Mode` checkbox in the dialog.
 
 Furthermore, with this mode, you're required to fill out label 4 with the reference value of the switch footprint that the key corresponds to (e.g. the key that corresponds to `SW1` should have `1` in label position 4, see guidelines above).
 
