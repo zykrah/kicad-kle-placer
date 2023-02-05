@@ -112,16 +112,6 @@ def is_empty_object(o):
         return False
     return True
 
-def extend(target, source): ### NEED TO FIGURE OUT IF THIS BREAKS
-    print('EXTEND FUNCTION')
-    target = target or {}
-    for prop in source:
-        if type(source[prop]) == object:
-            target[prop] = extend(target[prop], source[prop])
-        else:
-            target[prop] = source[prop]
-    return target
-
 # Map from serialized label position to normalized position,
 # depending on the alignment flags.
 LABEL_MAP = [
@@ -362,16 +352,20 @@ def deserialize(rows):
                         if k != 0:
                             deserialize_error("'r' can only be used on the first key in a row", item)
                         current.rotation_angle = item.get('r')
-                    if item.get('rx') != None: 
+                    if item.get('rx') != None:
                         if k != 0:
                             deserialize_error("'rx' can only be used on the first key in a row", item)
-                        current.rotation_x = cluster.x = item.get('rx')
-                        extend(current, cluster)
+                        cluster["x"] = float(item['rx'])
+                        current.rotation_x = cluster["x"]
+                        current.x = cluster["x"]
+                        current.y = cluster["y"]
                     if item.get('ry') != None:
                         if k != 0:
                             deserialize_error("'ry' can only be used on the first key in a row", item)
-                        current.rotation_y = cluster.y = item.get('ry')
-                        extend(current, cluster)
+                        cluster["y"] = float(item['ry'])
+                        current.rotation_y = cluster["y"]
+                        current.x = cluster["x"]
+                        current.y = cluster["y"]
                     if item.get('a') != None:
                         align = item.get('a')
                     if item.get('f'):
