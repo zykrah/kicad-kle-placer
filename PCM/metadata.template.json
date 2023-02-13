@@ -1,0 +1,33 @@
+{
+    "$schema": "https://go.kicad.org/pcm/schemas/v1",
+    "name": "KiCAD KLE Placer",
+    "description": "A plugin for KiCAD used to place switches based on a KLE.",
+    "description_full": "This plugin allows you to automatically place footprints of your chosing from a generated KLE .json file.",
+    "identifier": "com.github.zykrah.kicad-kle-placer",
+    "type": "plugin",
+    "author": {
+        "name": "zykrah",
+        "contact": {
+            "github": "zykrah"
+        }
+    },
+    "maintainer": {
+        "name": "zykrah",
+        "contact": {
+            "github": "zykrah"
+        }
+    },
+    "license": "WTFPL",
+    "resources": {
+        "homepage": "https://github.com/zykrah/kicad-kle-placer"
+    },
+    "versions": [{
+        "version": "VERSION_HERE",
+        "status": "testing",
+        "kicad_version": "7.0",
+        "download_sha256": "SHA256_HERE",
+        "download_size": DOWNLOAD_SIZE_HERE,
+        "download_url": "DOWNLOAD_URL_HERE",
+        "install_size": INSTALL_SIZE_HERE
+    }]
+}
