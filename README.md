@@ -7,19 +7,10 @@ NOTE:
 - Plugin is not fully tested, the more complex layouts you try with it, the less likely it is to work fully. Please open issues for any unintended behaviour.
 - I tested this plugin with [marbastlib](https://github.com/ebastler/marbastlib) (symbols and footprints).
 
+# Installation (KiCAD 6)
+To use this plugin with **KiCAD 6**, you'll have to use the legacy `6.0` branch [which you can access here](https://github.com/zykrah/kicad-kle-placer/tree/6.0). The installation instructions for that version will be available there. Just make sure you are downloading the code from that version.
 
-# Installation
-Download the github code and place it into `C:\Users\<user>\Documents\KiCad\7.0\scripting\plugins\kicad-kle-placer` (or wherever your plugins folder is located):
-
-![image](https://user-images.githubusercontent.com/23428162/175076873-44e1a3c8-77f8-4e67-b2b9-29ffcd3559e7.png)
-
-You can then refresh your plugins and it should show up (you can also find a shortcut to the plugins folder here):
-
-![image](https://user-images.githubusercontent.com/23428162/175077103-d6da1715-4924-4cf6-aa6d-9c0848566184.png)
-
-What the dialog looks like:
-
-![image](https://user-images.githubusercontent.com/23428162/175812246-eb44a86b-b6de-445c-b713-ac16aee70f52.png)
+**For installation instructions for KiCAD 7+, scroll down or [click me](#installation-kicad-7)**
 
 
 # Usage
@@ -136,3 +127,33 @@ Schematic:
 PCB after the script has run:
 
 ![image](https://user-images.githubusercontent.com/23428162/175811704-39f17014-a840-482a-ab17-ac925108f05e.png)
+
+
+# Installation (KiCAD 7+)
+To install the plugin on KiCAD 7+, you have to use KiCAD's `Plugin and Content Manager` (`PCM`):
+
+> **Make sure to enable automatic updates if you want to ensure the plugin is always up to date.**
+
+![image](https://user-images.githubusercontent.com/23428162/218463396-dfee85a0-b2e9-48c6-956a-2105ec25d76c.png)
+
+---
+
+To use, paste `https://raw.githubusercontent.com/zykrah/zykrah-kicad-repository/main/repository.json` into KiCAD's PCM Repository manager:
+
+![image](https://user-images.githubusercontent.com/23428162/218461351-fd328e5f-6096-4b76-a6f4-e09aaffc0289.png)
+
+---
+
+From there, change the repository at the top to `Zykrah's KiCad Repository`, press `Install` on the plugin, and press `Apply Pending Changes` at the bottom left.
+
+![image](https://user-images.githubusercontent.com/23428162/218463887-3eaad51e-090a-4468-b94a-0259dc32477f.png)
+
+---
+
+You should see the plugin now in your PCB editor:
+
+![image](https://user-images.githubusercontent.com/23428162/218465406-f9db67d6-6630-4730-afc8-2723845a1fcc.png)
+
+What the dialog looks like. Read the [usage documentation](#usage) to get started with the plugin:
+
+![image](https://user-images.githubusercontent.com/23428162/175812246-eb44a86b-b6de-445c-b713-ac16aee70f52.png)
