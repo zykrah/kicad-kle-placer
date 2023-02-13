@@ -9,7 +9,7 @@ NOTE:
 
 
 # Installation
-Download the github code and place it into `C:\Users\<user>\Documents\KiCad\6.0\scripting\plugins\kicad-kle-placer` (or wherever your plugins folder is located):
+Download the github code and place it into `C:\Users\<user>\Documents\KiCad\7.0\scripting\plugins\kicad-kle-placer` (or wherever your plugins folder is located):
 
 ![image](https://user-images.githubusercontent.com/23428162/175076873-44e1a3c8-77f8-4e67-b2b9-29ffcd3559e7.png)
 

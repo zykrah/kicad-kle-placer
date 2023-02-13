@@ -1,4 +1,6 @@
 import pcbnew
+from pcbnew import BOARD, FOOTPRINT, VECTOR2I, wxPoint, EDA_ANGLE
+
 import wx
 import os
 import re
@@ -118,9 +120,9 @@ class KeyAutoPlaceDialog(wx.Dialog):
         return self.specific_ref_mode.GetValue()
 
 class BoardModifier():
-    def __init__(self, logger, board):
+    def __init__(self, logger, board: BOARD):
         self.logger = logger
-        self.board = board
+        self.board: BOARD = board
 
     def mm_to_nm(self, v):
         return int(v * 1000000)
@@ -128,7 +130,7 @@ class BoardModifier():
     def nm_to_mm(self, v):
         return v / 1000000.0
 
-    def get_footprint(self, reference, required=True):
+    def get_footprint(self, reference, required=True) -> FOOTPRINT:
         self.logger.info("Searching for {} footprint".format(reference))
         footprint = self.board.FindFootprintByReference(reference)
         if footprint == None and required:
@@ -136,21 +138,21 @@ class BoardModifier():
             raise Exception("Cannot find footprint {}".format(reference))
         return footprint
 
-    def set_position(self, footprint, position):
+    def set_position(self, footprint: FOOTPRINT, position: wxPoint):
         self.logger.info("Setting {} footprint position: {}".format(footprint.GetReference(), position))
-        footprint.SetPosition(position)
+        footprint.SetPosition(VECTOR2I(position))
 
     def set_relative_position_mm(self, footprint, referencePoint, direction):
         position = pcbnew.wxPoint(referencePoint.x + pcbnew.FromMM(direction[0]), referencePoint.y + pcbnew.FromMM(direction[1]))
         self.set_position(footprint, position)
 
-    def rotate(self, footprint, rotationReference, angle):
+    def rotate(self, footprint: FOOTPRINT, rotationReference, angle):
         self.logger.info("Rotating {} footprint: rotationReference: {}, rotationAngle: {}".format(footprint.GetReference(), rotationReference, angle))
-        footprint.Rotate(rotationReference, angle * -10)
+        footprint.Rotate(VECTOR2I(rotationReference), EDA_ANGLE(angle*-1, pcbnew.DEGREES_T))
 
 
 class KeyPlacer(BoardModifier):
-    def __init__(self, logger, board, layout):
+    def __init__(self, logger, board: BOARD, layout):
         super().__init__(logger, board)
         self.layout: Keyboard = layout
         self.key_distance = pcbnew.FromMM(19.05)
