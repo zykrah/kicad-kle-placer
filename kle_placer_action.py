@@ -140,7 +140,7 @@ class BoardModifier():
 
     def set_position(self, footprint: FOOTPRINT, position: wxPoint):
         self.logger.info("Setting {} footprint position: {}".format(footprint.GetReference(), position))
-        footprint.SetPosition(VECTOR2I(position))
+        footprint.SetPosition(VECTOR2I(int(position.x), int(position.y)))
 
     def set_relative_position_mm(self, footprint, referencePoint, direction):
         position = pcbnew.wxPoint(referencePoint.x + pcbnew.FromMM(direction[0]), referencePoint.y + pcbnew.FromMM(direction[1]))
@@ -148,7 +148,7 @@ class BoardModifier():
 
     def rotate(self, footprint: FOOTPRINT, rotationReference, angle):
         self.logger.info("Rotating {} footprint: rotationReference: {}, rotationAngle: {}".format(footprint.GetReference(), rotationReference, angle))
-        footprint.Rotate(VECTOR2I(rotationReference), EDA_ANGLE(angle*-1, pcbnew.DEGREES_T))
+        footprint.Rotate(VECTOR2I(int(rotationReference.x), int(rotationReference.y)), EDA_ANGLE(angle*-1, pcbnew.DEGREES_T))
 
 
 class KeyPlacer(BoardModifier):
