@@ -23,7 +23,7 @@ class Key:
     labels: List[str] = _dcf_list()
     text_color: List[Optional[str]] = _dcf_list()
     text_size: List[Optional[int]] = _dcf_list()
-    default: KeyDefault = KeyDefault()
+    default: KeyDefault = dcf(default_factory=KeyDefault)
     x: float = 0.
     y: float = 0.
     width: float = 1.
@@ -72,7 +72,7 @@ class KeyboardMetadata:
 
 @dataclass
 class Keyboard:
-    meta: KeyboardMetadata = KeyboardMetadata()
+    meta: KeyboardMetadata = dcf(default_factory=KeyboardMetadata)
     keys: List[Key] = _dcf_list()
 
 def get_ndx(lst: list, ndx: int):
