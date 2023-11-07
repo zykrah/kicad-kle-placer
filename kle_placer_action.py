@@ -1,9 +1,9 @@
+from typing import Dict
 import pcbnew
 from pcbnew import BOARD, FOOTPRINT, VECTOR2I, wxPoint, EDA_ANGLE
 
 import wx
 import os
-import re
 import sys
 import json
 import logging
@@ -13,10 +13,11 @@ from math import sin, cos, radians, sqrt, atan, degrees
 from .serial import deserialize, Keyboard
 from .util import read_file, sort_keys_kle_placer, min_x_y, check_multilayout_keys
 
+
 class KeyAutoPlaceDialog(wx.Dialog):
     def __init__(self, parent, title, caption):
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
-        super(KeyAutoPlaceDialog, self).__init__(parent, -1, title, style=style)
+        super(KeyAutoPlaceDialog, self).__init__(parent, -1, 'KLE Placer', style=style)
 
         # File select
         layout_select_box = wx.BoxSizer(wx.HORIZONTAL)
@@ -35,6 +36,16 @@ class KeyAutoPlaceDialog(wx.Dialog):
 
         key_annotation_format = wx.TextCtrl(self, value='SW{}')
         key_format_box.Add(key_annotation_format, 1, wx.EXPAND|wx.ALL, 5)
+
+        # Key spacing
+        key_spacing_box = wx.BoxSizer(wx.HORIZONTAL)
+
+        spacing_annotation_label = wx.StaticText(self, -1, "Key spacing")
+        key_spacing_box.Add(spacing_annotation_label, 1, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 5)
+
+        spacing_control = wx.Choice(self, choices=["MX", "Choc"])
+        spacing_control.SetSelection(0)
+        key_spacing_box.Add(spacing_control, 1, wx.EXPAND|wx.ALL, 5)
 
         # Stab format
         stab_format_box = wx.BoxSizer(wx.HORIZONTAL)
@@ -80,6 +91,7 @@ class KeyAutoPlaceDialog(wx.Dialog):
 
         box.Add(layout_select_box, 0, wx.EXPAND|wx.ALL, 5)
         box.Add(key_format_box, 0, wx.EXPAND|wx.ALL, 5)
+        box.Add(key_spacing_box, 0, wx.EXPAND|wx.ALL, 5)
         box.Add(stab_format_box, 0, wx.EXPAND|wx.ALL, 5)
         box.Add(diode_format_box, 0, wx.EXPAND|wx.ALL, 5)
         box.Add(move_diodes_box, 0, wx.EXPAND|wx.ALL, 5)
@@ -92,6 +104,7 @@ class KeyAutoPlaceDialog(wx.Dialog):
         self.SetSizerAndFit(box)
         self.layout_file_picker = layout_file_picker
         self.key_annotation_format = key_annotation_format
+        self.key_spacing = spacing_control
         self.stabilizer_annotation_format = stabilizer_annotation_format
         self.diode_annotation_format = diode_annotation_format
         self.move_diodes_bool = move_diodes_bool
@@ -104,6 +117,9 @@ class KeyAutoPlaceDialog(wx.Dialog):
     def get_key_annotation_format(self):
         return self.key_annotation_format.GetValue()
 
+    def get_key_spacing(self):
+        return self.key_spacing.GetStringSelection()
+
     def get_stabilizer_annotation_format(self):
         return self.stabilizer_annotation_format.GetValue()
 
@@ -112,12 +128,13 @@ class KeyAutoPlaceDialog(wx.Dialog):
 
     def get_move_diodes_bool(self):
         return self.move_diodes_bool.GetValue()
-    
+
     def get_relative_diode_bool(self):
         return self.relative_diode_bool.GetValue()
-    
+
     def get_specific_ref_mode_bool(self):
         return self.specific_ref_mode.GetValue()
+
 
 class BoardModifier():
     def __init__(self, logger, board: BOARD):
@@ -126,7 +143,7 @@ class BoardModifier():
 
     def mm_to_nm(self, v):
         return int(v * 1000000)
-    
+
     def nm_to_mm(self, v):
         return v / 1000000.0
 
@@ -152,13 +169,21 @@ class BoardModifier():
 
 
 class KeyPlacer(BoardModifier):
-    def __init__(self, logger, board: BOARD, layout):
+    def __init__(self, logger, board: BOARD, layout, spacing: str):
         super().__init__(logger, board)
         self.layout: Keyboard = layout
         self.key_distance = pcbnew.FromMM(19.05)
         self.current_key = 1
         self.current_diode = 1
         self.reference_coordinate = pcbnew.wxPoint(pcbnew.FromMM(25), pcbnew.FromMM(25))
+
+        self.key_spacing = self._get_spacing(spacing)
+
+    def _get_spacing(self, spacing: str) -> Dict[str, float]:
+        if spacing == "MX":
+            return {"vertical": pcbnew.FromMM(19.05), "horizontal": pcbnew.FromMM(19.05)}
+        else:
+            return {"vertical": pcbnew.FromMM(17.0), "horizontal": pcbnew.FromMM(18.0)}
 
     def get_current_key(self, key_format, stabilizer_format):
         key = self.get_footprint(key_format.format(self.current_key))
@@ -183,11 +208,10 @@ class KeyPlacer(BoardModifier):
 
         # This list will replace kbd.keys later
         # It is a list with only the keys to be included in the info.json
-        temp_layout = [] 
+        temp_layout = []
         # Add non-multilayout keys to the list for now
         for key in [k for k in kbd.keys if k not in ml_keys]:
             temp_layout.append(key)
-
 
         # Generate a dict of all multilayouts
         # E.g. Used to test and figure out the multilayout value with the maximum amount of keys
@@ -209,7 +233,6 @@ class KeyPlacer(BoardModifier):
             if not key in ml_dict[ml_ndx][ml_val]:
                 ml_dict[ml_ndx][ml_val].append(key)
 
-
         # Iterate over multilayout keys
         for key in [k for k in kbd.keys if k in ml_keys]:
             # WIP: Be able to configure this
@@ -220,6 +243,7 @@ class KeyPlacer(BoardModifier):
             ml_val_length_list = [len(ml_dict[ml_ndx][i]) for i in ml_dict[ml_ndx].keys() if isinstance(i, int)]
             max_val_len = max(ml_val_length_list) # maximum amount of keys over all val options
             current_val_len = len(ml_dict[ml_ndx][ml_val]) # amount of keys in current val
+
             current_is_max = max_val_len == current_val_len
 
             # If all multilayout values/options have the same amount of keys
@@ -250,7 +274,7 @@ class KeyPlacer(BoardModifier):
                 else:
                     # If so, just get the offset from ml_dict
                     ml_x_offset, ml_y_offset = ml_dict[ml_ndx]["offsets"][ml_val]
-                
+
                 # Offset the x and y values
                 key.x += ml_x_offset
                 key.y += ml_y_offset
@@ -265,7 +289,7 @@ class KeyPlacer(BoardModifier):
         for key in temp_layout:
             key.x -= x_offset
             key.y -= y_offset
-            
+
             if key.rotation_angle:
                 key.rotation_x -= x_offset
                 key.rotation_y -= y_offset
@@ -288,7 +312,6 @@ class KeyPlacer(BoardModifier):
 
         if any([key.rotation_angle != 0 for key in self.layout.keys]) and not rotation_mode:
             raise Exception("You must enable rotation mode if there are any rotated keys!")
-
 
         ### Now begin the placement of all keys based on new layout. ###
 
@@ -323,7 +346,6 @@ class KeyPlacer(BoardModifier):
                 self.logger.info("dif_x {}".format(dif_x))
                 self.logger.info("dif_y {}".format(dif_y))
 
-
                 x = pos.x
                 y = pos.y
                 self.logger.info("x {}".format(x))
@@ -337,14 +359,14 @@ class KeyPlacer(BoardModifier):
                 top_left = pcbnew.wxPoint(xc , yc)
                 first_key_pos = top_left
 
-                #self.set_position(first_key,  pcbnew.wxPoint(xc, yc))
+                # self.set_position(first_key,  pcbnew.wxPoint(xc, yc))
             else:
-                first_key_pos = pcbnew.wxPoint((first_key.GetPosition().x) - ((self.key_distance * self.layout.keys[0].x) + (self.key_distance * self.layout.keys[0].width // 2)),
-                        (first_key.GetPosition().y) - ((self.key_distance * self.layout.keys[0].y) + (self.key_distance * self.layout.keys[0].height // 2)))
+                first_key_pos = pcbnew.wxPoint((first_key.GetPosition().x) - ((self.key_spacing['horizontal'] * self.layout.keys[0].x) + (self.key_spacing['horizontal'] * self.layout.keys[0].width // 2)),
+                                               (first_key.GetPosition().y) - ((self.key_spacing['vertical'] * self.layout.keys[0].y) + (self.key_spacing['vertical'] * self.layout.keys[0].height // 2)))
         else:
-            first_key_pos = pcbnew.wxPoint((first_key.GetPosition().x) - ((self.key_distance * self.layout.keys[0].x) + (self.key_distance * self.layout.keys[0].width // 2)),
-                    (first_key.GetPosition().y) - ((self.key_distance * self.layout.keys[0].y) + (self.key_distance * self.layout.keys[0].height // 2)))
-        
+            first_key_pos = pcbnew.wxPoint((first_key.GetPosition().x) - ((self.key_spacing['horizontal'] * self.layout.keys[0].x) + (self.key_spacing['horizontal'] * self.layout.keys[0].width // 2)),
+                                           (first_key.GetPosition().y) - ((self.key_spacing['vertical'] * self.layout.keys[0].y) + (self.key_spacing['vertical'] * self.layout.keys[0].height // 2)))
+
         self.logger.info("first_key_pos {}".format(first_key_pos))
         first_key_rotation = first_key.GetOrientationDegrees()
 
@@ -395,7 +417,7 @@ class KeyPlacer(BoardModifier):
             else:
                 diode_offset_x = self.nm_to_mm(first_diode.GetPosition().x - first_key.GetPosition().x)
                 diode_offset_y = self.nm_to_mm(first_diode.GetPosition().y - first_key.GetPosition().y)
-        
+
         first_diode_rotation = first_diode.GetOrientationDegrees()
         if first_key_already_rotated:
             first_diode_rotation += self.layout.keys[0].rotation_angle
@@ -431,15 +453,15 @@ class KeyPlacer(BoardModifier):
             angle = key.rotation_angle
 
             # Calculate position on board
-            position = pcbnew.wxPoint((self.key_distance * key.x) + (self.key_distance * width // 2),
-                (self.key_distance * key.y) + (self.key_distance * height // 2)) + self.reference_coordinate
-            
+            position = pcbnew.wxPoint((self.key_spacing['horizontal'] * key.x) + (self.key_spacing['horizontal'] * width // 2),
+                                      (self.key_spacing['vertical'] * key.y) + (self.key_spacing['vertical'] * height // 2)) + self.reference_coordinate
+
             # Move switch footprint
             self.set_position(switch_footprint, position)
 
             # Set rotation of switch to the same as the first one, then rotate extra based if needed
-            switch_footprint.SetOrientationDegrees(default_key_rotation) 
-            if extra_switch_rotation: 
+            switch_footprint.SetOrientationDegrees(default_key_rotation)
+            if extra_switch_rotation:
                 self.rotate(switch_footprint, switch_footprint.GetPosition(), extra_switch_rotation)
 
             # Move (and rotate) diode if it exists, and Move Diode is enabled
@@ -458,7 +480,7 @@ class KeyPlacer(BoardModifier):
 
             # For angled keys (should only apply when rotation mode is enabled)
             if angle != 0:
-                rotation_reference = pcbnew.wxPoint((self.key_distance * key.rotation_x), (self.key_distance * key.rotation_y)) + self.reference_coordinate
+                rotation_reference = pcbnew.wxPoint((self.key_spacing['horizontal'] * key.rotation_x), (self.key_spacing['vertical'] * key.rotation_y)) + self.reference_coordinate
                 self.logger.info("rotation_reference {}".format(rotation_reference))
                 self.rotate(switch_footprint, rotation_reference, angle)
 
@@ -496,7 +518,6 @@ class KLEPlacerAction(pcbnew.ActionPlugin):
         self.logger = logging.getLogger(__name__)
         self.logger.info("Plugin executed with python version: " + repr(sys.version))
 
-
     def Run(self):
         self.Initialize()
 
@@ -504,14 +525,15 @@ class KLEPlacerAction(pcbnew.ActionPlugin):
 
         dlg = KeyAutoPlaceDialog(pcbFrame, 'Title', 'Caption')
         if dlg.ShowModal() == wx.ID_OK:
-            
+
             layout_path = dlg.get_layout_path()
             if layout_path:
                 self.layout = deserialize(json.loads(read_file(layout_path)))
-            
+
                 self.logger.info("User layout: {}".format(self.layout))
-                placer = KeyPlacer(self.logger, self.board, self.layout)
-                placer.Run(dlg.get_key_annotation_format(), dlg.get_stabilizer_annotation_format(), dlg.get_diode_annotation_format(), dlg.get_move_diodes_bool(), dlg.get_relative_diode_bool(), dlg.get_specific_ref_mode_bool())
+                placer = KeyPlacer(self.logger, self.board, self.layout, dlg.get_key_spacing())
+                placer.Run(dlg.get_key_annotation_format(), dlg.get_stabilizer_annotation_format(), dlg.get_diode_annotation_format(
+                ), dlg.get_move_diodes_bool(), dlg.get_relative_diode_bool(), dlg.get_specific_ref_mode_bool())
 
         dlg.Destroy()
         logging.shutdown()
