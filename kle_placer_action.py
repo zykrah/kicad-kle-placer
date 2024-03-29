@@ -364,7 +364,7 @@ class KeyPlacer(BoardModifier):
         first_diode = self.get_footprint(diode_format.format(1), required=False) or None
 
         # Make sure there is a first diode if relative diode is enabled
-        if not first_diode and relative_diode_mode:
+        if not first_diode and move_diodes:
             raise Exception("First key requires a diode!")
 
         # DEFAULTS
@@ -395,13 +395,14 @@ class KeyPlacer(BoardModifier):
             else:
                 diode_offset_x = self.nm_to_mm(first_diode.GetPosition().x - first_key.GetPosition().x)
                 diode_offset_y = self.nm_to_mm(first_diode.GetPosition().y - first_key.GetPosition().y)
-        
-        first_diode_rotation = first_diode.GetOrientationDegrees()
-        if first_key_already_rotated:
-            first_diode_rotation += self.layout.keys[0].rotation_angle
 
-        # Set the default diode rotation to that of the first diode's
-        default_diode_rotation = first_diode_rotation
+        if move_diodes:
+            first_diode_rotation = first_diode.GetOrientationDegrees()
+            if first_key_already_rotated:
+                first_diode_rotation += self.layout.keys[0].rotation_angle
+
+            # Set the default diode rotation to that of the first diode's
+            default_diode_rotation = first_diode_rotation
 
         # Start placement of keys
         for key in self.layout.keys:
