@@ -133,7 +133,7 @@ class BoardModifier():
     def get_footprint(self, reference, required=True) -> FOOTPRINT:
         self.logger.info("Searching for {} footprint".format(reference))
         footprint = self.board.FindFootprintByReference(reference)
-        if footprint == None and required:
+        if footprint is None and required:
             self.logger.error("Footprint not found")
             raise Exception("Cannot find footprint {}".format(reference))
         return footprint
